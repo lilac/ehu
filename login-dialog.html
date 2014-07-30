@@ -1,0 +1,40 @@
+<link rel="import" href="/bower_components/polymer/polymer.html">
+<link rel="import" href="/bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="/bower_components/core-icons/core-icons.html">
+<link rel="import" href="/bower_components/core-field/core-field.html">
+
+<polymer-element name="login-dialog">
+
+    <template>
+        <style>
+            paper-button {
+                background: #4285f4;
+                color: #fff;
+            }
+
+            paper-button:hover {
+                background: #2a56c6;
+            }
+        </style>
+        <paper-dialog id="dialog" heading="Login"
+                      transition="paper-dialog-transition-bottom">
+            <core-field>
+                <core-icon icon="account-box"></core-icon>
+                <input placeholder="id" flex autofocus>
+            </core-field>
+            <core-field>
+                <core-icon icon="lock"></core-icon>
+                <input placeholder="password" flex>
+            </core-field>
+            <paper-button label="Cancel" dismissive></paper-button>
+            <paper-button label="OK" affirmative default></paper-button>
+        </paper-dialog>
+    </template>
+    <script>
+        Polymer('login-dialog', {
+            toggle: function() {
+                this.$.dialog.toggle();
+            }
+        });
+    </script>
+</polymer-element>
