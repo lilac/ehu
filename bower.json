@@ -1,0 +1,22 @@
+{
+  "name": "ehu",
+  "version": "0.0.0",
+  "authors": [
+    "James Deng <cnjamesdeng@gmail.com>"
+  ],
+  "description": "Easy customer service calls.",
+  "keywords": [
+    "xmpp",
+    "voip"
+  ],
+  "license": "Proprietary",
+  "homepage": "ehu.com",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
