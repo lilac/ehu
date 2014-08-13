@@ -67,7 +67,7 @@ auth.factory('AuthService', function ($http, $q, Session, SERVER) {
     return authService;
 });
 
-auth.controller('LoginController', function ($scope, $rootScope, AUTH_EVENTS, AuthService) {
+auth.controller('LoginController', function ($scope, $rootScope, $route, AUTH_EVENTS, AuthService) {
     $scope.credentials = {
         username: '',
         password: ''
@@ -76,6 +76,8 @@ auth.controller('LoginController', function ($scope, $rootScope, AUTH_EVENTS, Au
     $scope.login = function (credentials) {
         AuthService.login(credentials).then(function () {
             $rootScope.$broadcast(AUTH_EVENTS.loginSuccess);
+            // after a successful login, we need to reload the route in order to resolve its dependencies.
+            $route.reload();
         }, function (error) {
             $rootScope.$broadcast(AUTH_EVENTS.loginFailed);
             $scope.error = error;

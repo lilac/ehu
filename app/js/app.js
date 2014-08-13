@@ -25,5 +25,7 @@ app.config(function ($routeProvider) {
         resolve: {
             connection: ['Session', function (Session) { return Session.getConnection(); }]
         }
+    }).otherwise({
+        redirectTo: '/explore'
     });
 });
