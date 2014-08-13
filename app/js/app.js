@@ -9,28 +9,21 @@ app.controller('NavCtrl', function($scope, $location) {
     };
 });
 
-app.controller('ApplicationCtrl', function ($scope) {
-    // strophe connection
-    $scope.connection = null;
-
-    $scope.setConnection = function (con) {
-        $scope.connection = con;
-    };
-});
-
-var router = function($routeProvider) {
+app.config(function ($routeProvider) {
     $routeProvider.when('/explore', {
         templateUrl: 'partials/explore.html',
         controller: 'ExploreCtrl'
     }).when('/sessions', {
         templateUrl: 'partials/sessions.html',
         controller: 'SessionCtrl',
-        auth: true
+        resolve: {
+            connection: ['Session', function (Session) { return Session.getConnection(); }]
+        }
     }).when('/contacts', {
         templateUrl: 'partials/contacts.html',
         controller: 'ContactCtrl',
-        auth: true
+        resolve: {
+            connection: ['Session', function (Session) { return Session.getConnection(); }]
+        }
     });
-};
-
-app.config(router);
+});

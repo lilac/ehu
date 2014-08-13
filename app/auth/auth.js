@@ -15,14 +15,27 @@ auth.constant('AUTH_EVENTS', {
 auth.constant('SERVER', 'http://bosh.metajack.im:5280/xmpp-httpbind');
 
 // Session management.
-auth.service('Session', function () {
-    this.create = function (userId, userPass) {
+auth.service('Session', function ($q) {
+    this.create = function (userId, userPass, con) {
         this.userId = userId;
         this.userPass = userPass;
+        // connection : Strophe.Connection
+        this.connection = con;
     };
     this.destroy = function () {
         this.userId = null;
         this.userPass = null;
+        this.connection = null;
+    };
+    this.isAuthenticated = function () {
+        return !!this.userId;
+    };
+    this.getConnection = function () {
+        if (this.connection) {
+            return $q.when(this.connection);
+        } else {
+            return $q.reject();
+        }
     };
     return this;
 });
@@ -47,25 +60,10 @@ auth.factory('AuthService', function ($http, $q, Session, SERVER) {
         }
         return connect()
             .then(function (con) {
-                // con : Strophe.Connection
-                Session.create(con.authzid, con.pass);
-                return con;
+                Session.create(con.authzid, con.pass, con);
             });
     };
 
-    authService.isAuthenticated = function () {
-        return !!Session.userId;
-    };
-
-    /* for user roles. Currently we don't need this.
-    authService.isAuthorized = function (authorizedRoles) {
-        if (!angular.isArray(authorizedRoles)) {
-            authorizedRoles = [authorizedRoles];
-        }
-        return (authService.isAuthenticated() &&
-            authorizedRoles.indexOf(Session.userRole) !== -1);
-    };
-    */
     return authService;
 });
 
@@ -76,9 +74,8 @@ auth.controller('LoginController', function ($scope, $rootScope, AUTH_EVENTS, Au
     };
     $scope.error = null;
     $scope.login = function (credentials) {
-        AuthService.login(credentials).then(function (con) {
+        AuthService.login(credentials).then(function () {
             $rootScope.$broadcast(AUTH_EVENTS.loginSuccess);
-            $scope.setConnection(con);
         }, function (error) {
             $rootScope.$broadcast(AUTH_EVENTS.loginFailed);
             $scope.error = error;
@@ -102,7 +99,9 @@ auth.directive('loginDialog', function (AUTH_EVENTS) {
             }
             scope.visible = false;
             scope.failure = false;
-            scope.$on(AUTH_EVENTS.notAuthenticated, showDialog);
+            // reset dialog status when route changes.
+            scope.$on('$routeChangeSuccess', hideDialog);
+            scope.$on('$routeChangeError', showDialog);
             scope.$on(AUTH_EVENTS.sessionTimeout, showDialog);
             scope.$on(AUTH_EVENTS.loginSuccess, hideDialog);
             scope.$on(AUTH_EVENTS.loginFailed, showError);
@@ -130,16 +129,4 @@ auth.directive('formAutofillFix', function ($timeout) {
             });
         }
     };
-});
-
-// secure routes
-auth.run(function ($rootScope, AUTH_EVENTS, AuthService) {
-    $rootScope.$on('$routeChangeStart', function (event, next) {
-        var auth = next.auth; // if authentication is required.
-        if (auth && !AuthService.isAuthenticated()) {
-            // user is not logged in
-            event.preventDefault();
-            $rootScope.$broadcast(AUTH_EVENTS.notAuthenticated);
-        }
-    });
 });
