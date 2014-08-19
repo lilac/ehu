@@ -17,15 +17,20 @@ app.config(function ($routeProvider) {
         templateUrl: 'partials/sessions.html',
         controller: 'SessionCtrl',
         resolve: {
-            connection: ['Session', function (Session) { return Session.getConnection(); }]
+            connection: requireConnection
         }
     }).when('/contacts', {
         templateUrl: 'partials/contacts.html',
         controller: 'ContactCtrl',
         resolve: {
-            connection: ['Session', function (Session) { return Session.getConnection(); }]
+            connection: requireConnection
         }
     }).otherwise({
         redirectTo: '/explore'
     });
 });
+
+var requireConnection = ['Session', function (Session) {
+    return Session.getConnection();
+    }
+];

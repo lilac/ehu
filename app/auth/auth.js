@@ -1,7 +1,7 @@
 /**
  * Created by james on 11/08/14.
  */
-var auth = angular.module('ehu.auth', []);
+var auth = angular.module('ehu.auth', ['ui.bootstrap']);
 
 auth.constant('AUTH_EVENTS', {
     loginSuccess: 'auth-login-success',
@@ -15,8 +15,8 @@ auth.constant('AUTH_EVENTS', {
 auth.constant('SERVER', 'http://bosh.metajack.im:5280/xmpp-httpbind');
 
 // Session management.
-auth.service('Session', function ($q) {
-    this.create = function (userId, userPass, con) {
+auth.service('Session', function ($q, $modal) {
+    this.create = function create(userId, userPass, con) {
         this.userId = userId;
         this.userPass = userPass;
         // connection : Strophe.Connection
@@ -34,80 +34,55 @@ auth.service('Session', function ($q) {
         if (this.connection) {
             return $q.when(this.connection);
         } else {
-            return $q.reject();
+            var dialog = $modal.open({
+                templateUrl: 'auth/login-form.html',
+                controller: 'LoginCtrl'
+            });
+            var session = this;
+            return dialog.result.then(function (con) {
+                session.create(con.authzid, con.pass, con);
+                return con;
+            });
         }
     };
-    return this;
 });
 
-auth.factory('AuthService', function ($http, $q, Session, SERVER) {
+auth.factory('AuthService', function ($http, $q, SERVER) {
     var authService = {};
 
+    // async call, returns a promise.
     authService.login = function (credentials) {
-        // async call, returns a promise.
-        function connect() {
-            var deferred = $q.defer();
-            var connection = new Strophe.Connection(SERVER);
-            connection.connect(credentials.username, credentials.password, function (status, error) {
-                if (status === Strophe.Status.CONNECTED) {
-                    // success
-                    deferred.resolve(connection);
-                } else if (error) {
-                    deferred.reject(error);
-                } // TODO: need to handle other statuses?
-            });
-            return deferred.promise;
-        }
-        return connect()
-            .then(function (con) {
-                Session.create(con.authzid, con.pass, con);
-            });
+        var deferred = $q.defer();
+        var connection = new Strophe.Connection(SERVER);
+        connection.connect(credentials.username, credentials.password, function (status, error) {
+            if (status === Strophe.Status.CONNECTED) {
+                // success
+                deferred.resolve(connection);
+            } else if (error) {
+                deferred.reject(error);
+            } // TODO: need to handle other statuses?
+        });
+        return deferred.promise;
     };
 
     return authService;
 });
 
-auth.controller('LoginController', function ($scope, $rootScope, $route, AUTH_EVENTS, AuthService) {
+auth.controller('LoginCtrl', function ($scope, $rootScope, $route, AUTH_EVENTS, AuthService) {
     $scope.credentials = {
         username: '',
         password: ''
     };
     $scope.error = null;
     $scope.login = function (credentials) {
-        AuthService.login(credentials).then(function () {
+        AuthService.login(credentials).then(function (con) {
             $rootScope.$broadcast(AUTH_EVENTS.loginSuccess);
-            // after a successful login, we need to reload the route in order to resolve its dependencies.
-            $route.reload();
+            // upon successful login, close the dialog with the connection promise.
+            $scope.$close(con);
         }, function (error) {
             $rootScope.$broadcast(AUTH_EVENTS.loginFailed);
-            $scope.error = error;
+            $scope.error = $scope.error || error;
         });
-    };
-});
-
-auth.directive('loginDialog', function (AUTH_EVENTS) {
-    return {
-        restrict: 'A',
-        template: '<div ng-if="visible" ng-include="\'auth/login-form.html\'">',
-        link: function (scope) {
-            var showDialog = function () {
-                scope.visible = true;
-            };
-            function hideDialog() {
-                scope.visible = false;
-            }
-            function showError() {
-                scope.failure = true;
-            }
-            scope.visible = false;
-            scope.failure = false;
-            // reset dialog status when route changes.
-            scope.$on('$routeChangeSuccess', hideDialog);
-            scope.$on('$routeChangeError', showDialog);
-            scope.$on(AUTH_EVENTS.sessionTimeout, showDialog);
-            scope.$on(AUTH_EVENTS.loginSuccess, hideDialog);
-            scope.$on(AUTH_EVENTS.loginFailed, showError);
-        }
     };
 });
 
