@@ -12,7 +12,3 @@ controllers.controller('ExploreCtrl', function ($scope) {
 controllers.controller('SessionCtrl', function ($scope) {
     $scope.page = 'Sessions';
 });
-
-controllers.controller('ContactCtrl', function ($scope) {
-    $scope.page = 'Contacts';
-})

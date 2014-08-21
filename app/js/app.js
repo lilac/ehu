@@ -1,7 +1,7 @@
 /**
  * Created by james on 1/08/14.
  */
-var app = angular.module('ehu', ['ngRoute', 'ehu.controller', 'ehu.auth']);
+var app = angular.module('ehu', ['ngRoute', 'ehu.controller', 'ehu.auth', 'ehu.contact']);
 
 app.controller('NavCtrl', function($scope, $location) {
     $scope.isActive = function(path) {
@@ -20,7 +20,7 @@ app.config(function ($routeProvider) {
             connection: requireConnection
         }
     }).when('/contacts', {
-        templateUrl: 'partials/contacts.html',
+        templateUrl: 'contact/contacts.html',
         controller: 'ContactCtrl',
         resolve: {
             connection: requireConnection
