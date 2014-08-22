@@ -12,7 +12,8 @@ auth.constant('AUTH_EVENTS', {
     notAuthorized: 'auth-not-authorized'
 });
 
-auth.constant('SERVER', 'http://bosh.metajack.im:5280/xmpp-httpbind');
+//auth.constant('SERVER', 'http://bosh.metajack.im:5280/xmpp-httpbind');
+auth.constant('SERVER', 'http://localhost:7070/http-bind/');
 
 // Session management.
 auth.service('Session', function ($q, $modal) {
@@ -55,12 +56,22 @@ auth.factory('AuthService', function ($http, $q, SERVER) {
         var deferred = $q.defer();
         var connection = new Strophe.Connection(SERVER);
         connection.connect(credentials.username, credentials.password, function (status, error) {
-            if (status === Strophe.Status.CONNECTED) {
-                // success
-                deferred.resolve(connection);
-            } else if (error) {
-                deferred.reject(error);
-            } // TODO: need to handle other statuses?
+            switch (status) {
+                case Strophe.Status.CONNECTED: // success
+                    deferred.resolve(connection);
+                    break;
+                case Strophe.Status.ERROR:
+                    error = error || 'error';
+                case Strophe.Status.CONNFAIL:
+                    error = error || 'connection-fail';
+                case Strophe.Status.AUTHFAIL:
+                    error = error || 'auth-fail';
+                    // Openfire server seems not set error msg correctly.
+                    deferred.reject(error);
+                    break;
+                default:
+                    // ignore other cases.
+            }
         });
         return deferred.promise;
     };
@@ -73,14 +84,21 @@ auth.controller('LoginCtrl', function ($scope, $rootScope, $route, AUTH_EVENTS, 
         username: '',
         password: ''
     };
-    $scope.error = null;
     $scope.login = function (credentials) {
+        // reset errors.
+        $scope.error = null;
+        console.log('info', 'trying to login.');
+        // There is a bug in Strophe.getBareJidFromJid(jid) which returns null
+        // when jid is empty. Therefore we set a non-empty default name.
+        credentials.username = credentials.username || 'anonymous';
         AuthService.login(credentials).then(function (con) {
             $rootScope.$broadcast(AUTH_EVENTS.loginSuccess);
             // upon successful login, close the dialog with the connection promise.
             $scope.$close(con);
+            console.log('info', 'log in successfully.');
         }, function (error) {
             $rootScope.$broadcast(AUTH_EVENTS.loginFailed);
+            console.log('error', error);
             $scope.error = $scope.error || error;
         });
     };
